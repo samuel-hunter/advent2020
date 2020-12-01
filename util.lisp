@@ -1,6 +1,6 @@
 
 (defpackage #:advent2020.util
-  (:use #:cl #:alexandria)
+  (:use #:cl #:alexandria #:arrows)
   (:export #:read-puzzle-text
            #:read-puzzle-sexp))
 
@@ -14,10 +14,12 @@
 
 (defun package->inputname (package suffix)
   "Convert a package to its associated input file name."
-  (let* ((name (package-name package))
-         (base-name (string-downcase (subseq name #.(length "ADVENT2020."))))
-         (full-name (concatenate 'string base-name suffix)))
-    full-name))
+  (-<>
+   (package-name package) ;; Find the package name...
+   (subseq <> #.(length "ADVENT2020.")) ;; Slice off the beginning...
+   (string-downcase <>) ;; Convert to lowercase...
+   (concatenate 'string <> suffix) ;; And then finally add the suffix!
+   ))
 
 (defun normalize-name-designator (name-designator suffix)
   "Convert any name designators into a proper input file name."
