@@ -2,7 +2,8 @@
 (defpackage #:advent2020.util
   (:use #:cl #:alexandria #:arrows)
   (:export #:read-puzzle-text
-           #:read-puzzle-sexp))
+           #:read-puzzle-sexp
+           #:with-puzzle-file))
 
 (in-package #:advent2020.util)
 
@@ -41,3 +42,8 @@ NAME, the file is determined based on the package name."
   (setf name (normalize-name-designator name ".lisp"))
   (with-open-file (stream (merge-pathnames name +input-directory+))
     (read stream)))
+
+(defmacro with-puzzle-file ((stream &optional name (prefix ".txt")) &body body)
+  `(with-open-file (,stream (merge-pathnames (normalize-name-designator ,name ,prefix)
+                                             +input-directory+))
+     ,@body))

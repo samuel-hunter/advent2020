@@ -7,8 +7,8 @@
 
 
 
-(defun parse-input (input)
-  (with-input-from-string (stream input)
+(defun parse-input ()
+  (with-puzzle-file (stream)
     (loop :with scanner := (ppcre:create-scanner "(\\d+)-(\\d+) (\\w): (\\w+)")
           :for line := (read-line stream nil)
           :while line
@@ -30,7 +30,7 @@
                          (char letter 0) ;; Convert letter "string" to a char.
                          password))))
 
-(defparameter +input+ (parse-input (read-puzzle-text)))
+(defparameter +input+ (parse-input))
 
 (defun count-occurrences (char string)
   "Count the occurences of CHAR in STRING."
