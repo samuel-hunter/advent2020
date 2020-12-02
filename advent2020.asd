@@ -5,6 +5,6 @@
   :author "Samuel Hunter"
   :license  "BSD 3-Clause"
   :version "0.0.1"
-  :depends-on (#:alexandria #:arrows)
+  :depends-on (#:alexandria #:arrows #:split-sequence #:cl-ppcre)
   :serial t
   :components ((:file "util")))
