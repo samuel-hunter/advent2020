@@ -8,38 +8,24 @@
 
 
 (defun parse-map ()
-  "Convert the input file into a list of lists of booleans of whether a tree is at X,Y."
+  "Break the input file into a list of lines."
   (with-puzzle-file (stream)
     (loop :for line := (read-line stream nil)
           :while line
-          :collect (loop :for char :across line
-                         :collect (char= char #\#)))))
+          :collect line)))
 
-(defun map-array (thelist)
-  "Convert the map list into a 2D array."
-  (let ((map (make-array (list (length (first thelist)) (length thelist))
-                         :element-type 'boolean
-                         :initial-element nil)))
-    (loop :for y :in thelist
-          :for yi :upfrom 0
-          :do (loop :for x :in y
-                    :for xi :upfrom 0
-                    :do (setf (aref map xi yi)
-                              x)))
-    map))
-
-(defparameter +input+ (map-array (parse-map)))
+(defparameter +input+ (parse-map))
 
 (defun map-width ()
-  (first (array-dimensions +input+)))
+  (length (first +input+)))
 
 (defun map-height ()
-  (second (array-dimensions +input+)))
+  (length +input+))
 
 (defun tree-at (x y)
-  (aref +input+
-        (mod x (map-width))
-        y))
+  "Return whether there's a tree at X and Y."
+  (char= #\#
+         (char (nth y +input+) (mod x (map-width)))))
 
 (defun count-trees (dx dy)
   (loop :for x :upfrom 0 :by dx
