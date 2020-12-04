@@ -1,20 +1,13 @@
 
 (defpackage #:advent2020.day03
-  (:use #:cl #:alexandria #:advent2020.util #:arrows)
+  (:use #:cl #:alexandria #:advent2020.util)
   (:export #:solve-part-1 #:solve-part-2))
 
 (in-package #:advent2020.day03)
 
 
 
-(defun parse-map ()
-  "Break the input file into a list of lines."
-  (with-puzzle-file (stream)
-    (loop :for line := (read-line stream nil)
-          :while line
-          :collect line)))
-
-(defparameter +input+ (parse-map))
+(defparameter +input+ (parse-lines #'identity))
 
 (defun map-width ()
   (length (first +input+)))

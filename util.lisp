@@ -3,7 +3,8 @@
   (:use #:cl #:alexandria #:arrows)
   (:export #:read-puzzle-text
            #:read-puzzle-sexp
-           #:with-puzzle-file))
+           #:with-puzzle-file
+           #:parse-lines))
 
 (in-package #:advent2020.util)
 
@@ -47,3 +48,9 @@ NAME, the file is determined based on the package name."
   `(with-open-file (,stream (merge-pathnames (normalize-name-designator ,name ,prefix)
                                              +input-directory+))
      ,@body))
+
+(defun parse-lines (parser &optional name (prefix ".txt"))
+  (with-puzzle-file (stream name prefix)
+    (loop :for line := (read-line stream nil)
+          :while line
+          :collect (funcall parser line))))
