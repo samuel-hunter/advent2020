@@ -10,17 +10,12 @@
 (defstruct passport
   byr iyr eyr hgt hcl ecl pid cid)
 
-(defparameter +required-fields+
-  ;; Everything except the Country ID (cid)
-  '(byr iyr eyr hgt hcl ecl pid))
-
 (defun passport-has-required-fields (passport)
-  (loop :for field :in +required-fields+
-        ;; Count the number of non-nil slots
-        :count (slot-value passport field) :into fields
-        ;; If the numer of slots matches the number of required
-        ;; fields, then it's OK!
-        :finally (return (= fields (length +required-fields+)))))
+  (loop :with required-fields := '(byr iyr eyr hgt hcl ecl pid)
+        :for field :in required-fields
+
+        ;; Every required field should be non-nil.
+        :always (slot-value passport field)))
 
 (defun height-value (passport)
   (car (passport-hgt passport)))
@@ -87,31 +82,33 @@ reached, return NIL instead."
   (loop :for passport :in +input+
         :count (passport-has-required-fields passport)))
 
-(defun hex-char-p (char)
-  (let ((code (char-code char)))
-    (or (<= (char-code #\a) code (char-code #\f))
-        (<= (char-code #\0) code (char-code #\9)))))
+(defun hexadecimal-p (string)
+  "Return whether STRING is a valid hexadecimal number"
+  (multiple-value-bind (value advance)
+      (parse-integer string :junk-allowed t :radix 16)
+    (declare (ignore value))
+    ;; If the number of characters parsed is the same as the length of
+    ;; the string, then the entire string is a hex number.
+    (= advance (length string))))
 
 (defun valid-color-p (colorstr)
-  (and (eq (char colorstr 0) #\#)
-       (= 7 (length colorstr))
-       (loop :for c :across (subseq colorstr 1)
-             :always (hex-char-p c))))
-
-(defun passport-valid-p (passport)
-  (and (passport-has-required-fields passport)
-       (<= 1920 (passport-byr passport) 2002)
-       (<= 2010 (passport-iyr passport) 2020)
-       (<= 2020 (passport-eyr passport) 2030)
-       (if (eq (height-unit passport) :cm)
-           (<= 150 (height-value passport) 193)
-           (<= 59 (height-value passport) 76))
-       (valid-color-p (passport-hcl passport))
-       (member (passport-ecl passport)
-               '("amb" "blu" "brn" "gry" "grn" "hzl" "oth")
-               :test #'string=)
-       (= 9 (length (passport-pid passport)))))
+  (and (= 7 (length colorstr))
+       ;; Starts with a pound #
+       (eq (char colorstr 0) #\#)
+       ;; ...followed by 6 hex digits.
+       (hexadecimal-p (subseq colorstr 1))))
 
 (defun solve-part-2 ()
   (loop :for passport :in +input+
-        :count (passport-valid-p passport)))
+        :count (and (passport-has-required-fields passport)
+                    (<= 1920 (passport-byr passport) 2002)
+                    (<= 2010 (passport-iyr passport) 2020)
+                    (<= 2020 (passport-eyr passport) 2030)
+                    (if (eq (height-unit passport) :cm)
+                        (<= 150 (height-value passport) 193)
+                        (<= 59 (height-value passport) 76))
+                    (valid-color-p (passport-hcl passport))
+                    (member (passport-ecl passport)
+                            '("amb" "blu" "brn" "gry" "grn" "hzl" "oth")
+                            :test #'string=)
+                    (= 9 (length (passport-pid passport))))))
