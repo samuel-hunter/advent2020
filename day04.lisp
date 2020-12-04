@@ -7,13 +7,6 @@
 
 
 
-(defun parse-height (height-str)
-  "Parse the HEIGHT-STR into a CONS cell, with its CAR being the
-height integer, and its CDR being either :IN or :CM."
-  (cons (parse-integer height-str :junk-allowed t)
-        (if (ends-with-subseq "cm" height-str)
-            :cm :in)))
-
 (defstruct passport
   byr iyr eyr hgt hcl ecl pid cid)
 
@@ -29,6 +22,19 @@ height integer, and its CDR being either :IN or :CM."
         ;; fields, then it's OK!
         :finally (return (= fields (length +required-fields+)))))
 
+(defun height-value (passport)
+  (car (passport-hgt passport)))
+
+(defun height-unit (passport)
+  (cdr (passport-hgt passport)))
+
+(defun parse-height (height-str)
+  "Parse the HEIGHT-STR into a CONS cell, with its CAR being the
+height integer, and its CDR being either :IN or :CM."
+  (cons (parse-integer height-str :junk-allowed t)
+        (if (ends-with-subseq "cm" height-str)
+            :cm :in)))
+
 (defun make-passport* (&key byr iyr eyr hgt hcl ecl pid cid)
   "Create a passport instance, parsing each string keyword argument."
   (make-passport
@@ -41,28 +47,39 @@ height integer, and its CDR being either :IN or :CM."
    :pid pid
    :cid cid))
 
-(defun parse-passports ()
-  (with-puzzle-file (stream)
-    (loop :with kwargs := () ;; keyword args for the passport
+(defun read-passport-to-string (stream)
+  "Read the multi-line passport into a single-line string. If EOF is
+reached, return NIL instead."
+  (with-output-to-string (out)
+    (loop :with first-line-read := nil
 
           :for line := (read-line stream nil)
           :while line
+          :until (string= line "")
 
-          ;; An extra line separates passports.
-          :if (string= line "")
-            ;; Pass forward the kwargs to #'make-passport and collect them.
-            :collect (apply 'make-passport* kwargs) :into passports
-            :and :do (setf kwargs ())
-          :else
-            ;; Go through each key:value pair and add them to the keyword args list.
-            :do (loop :for cred :in (split-sequence #\Space line)
-                      :for (key value) := (split-sequence #\: cred)
-                      ;; Prepend the value, and then the keyword, into the linked list.
-                      :do (push value kwargs)
-                          (push (make-keyword (string-upcase key)) kwargs))
-          :finally
-             (return (cons (apply 'make-passport* kwargs)
-                           passports)))))
+          :do (when first-line-read
+                (princ #\Space out))
+              (princ line out)
+              (setf first-line-read t)
+
+          :finally (unless first-line-read
+                     (return-from read-passport-to-string nil)))))
+
+(defun parse-passports ()
+  "Read the entire puzzle file and return a list of passport structs."
+  (with-puzzle-file (stream)
+    (loop :for passport-line := (read-passport-to-string stream)
+          :while passport-line
+          :collect (loop :for cred :in (split-sequence #\Space passport-line)
+                         :for (key value) := (split-sequence #\: cred)
+                         ;; Convert the key-value pair into a plist of
+                         ;; keys and values...
+                         :collect (make-keyword (string-upcase key))
+                           :into kwargs
+                         :collect value :into kwargs
+                         ;; ...which we can then apply to
+                         ;; make-passport* to make our struct
+                         :finally (return (apply 'make-passport* kwargs))))))
 
 (defparameter +input+ (parse-passports))
 
@@ -86,12 +103,13 @@ height integer, and its CDR being either :IN or :CM."
        (<= 1920 (passport-byr passport) 2002)
        (<= 2010 (passport-iyr passport) 2020)
        (<= 2020 (passport-eyr passport) 2030)
-       (if (eq (cdr (passport-hgt passport)) :cm)
-           (<= 150 (car (passport-hgt passport)) 193)
-           (<= 59 (car (passport-hgt passport)) 76))
+       (if (eq (height-unit passport) :cm)
+           (<= 150 (height-value passport) 193)
+           (<= 59 (height-value passport) 76))
        (valid-color-p (passport-hcl passport))
        (member (passport-ecl passport)
-               '("amb" "blu" "brn" "gry" "grn" "hzl" "oth") :test #'string=)
+               '("amb" "blu" "brn" "gry" "grn" "hzl" "oth")
+               :test #'string=)
        (= 9 (length (passport-pid passport)))))
 
 (defun solve-part-2 ()
