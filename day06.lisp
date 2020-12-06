@@ -7,23 +7,7 @@
 
 
 
-(defun read-groups ()
-  ;; After days 4 and 6, I'm tempted to write a util function to group
-  ;; together newline-separated groups.
-  (with-puzzle-file (stream)
-    (loop :with group := ()
-          :for line := (read-line stream nil)
-          :while line
-          :if (string= line "")
-            :collect (reverse group) :into groups
-            :and :do (setf group ())
-          :else
-            :do (push line group)
-          :finally (return (if group
-                               (cons group groups)
-                               groups)))))
-
-(defparameter +input+ (read-groups))
+(defparameter +input+ (parse-forms #'identity))
 
 (defun count-any-answered (group)
   "Count teh number of questions that any people in GROUP answered."
@@ -49,8 +33,8 @@
                       ;; And then touch to MISSED-QS all the questions missed.
                   :finally (loop :for code :from (char-code #\a) :to (char-code #\z)
                                  :for c := (code-char code)
-                                 :unless (gethash q answered-qs)
-                                   :do (setf (gethash q missed-qs) t)))
+                                 :unless (gethash c answered-qs)
+                                   :do (setf (gethash c missed-qs) t)))
             ;; Finally, fold and invert.
         :finally (return (- 26 (length (hash-table-keys missed-qs))))))
 

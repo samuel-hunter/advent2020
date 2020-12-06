@@ -42,41 +42,19 @@ height integer, and its CDR being either :IN or :CM."
    :pid pid
    :cid cid))
 
-(defun read-passport-to-string (stream)
-  "Read the multi-line passport into a single-line string. If EOF is
-reached, return NIL instead."
-  (with-output-to-string (out)
-    (loop :with first-line-read := nil
+(defun parse-passport (lines)
+  (loop :with kwargs := ()
+        :for line :in lines
+        :do (loop :for credential :in (split-sequence #\Space line)
+                  :for (key value) := (split-sequence #\: credential)
+                  ;; Prepent the key-value pair into the list of
+                  ;; keyword args, value first because prepending
+                  ;; happens in reverse.
+                  :do (push value kwargs)
+                      (push (make-keyword (string-upcase key)) kwargs))
+        :finally (return (apply 'make-passport* kwargs))))
 
-          :for line := (read-line stream nil)
-          :while line
-          :until (string= line "")
-
-          :do (when first-line-read
-                (princ #\Space out))
-              (princ line out)
-              (setf first-line-read t)
-
-          :finally (unless first-line-read
-                     (return-from read-passport-to-string nil)))))
-
-(defun parse-passports ()
-  "Read the entire puzzle file and return a list of passport structs."
-  (with-puzzle-file (stream)
-    (loop :for passport-line := (read-passport-to-string stream)
-          :while passport-line
-          :collect (loop :for cred :in (split-sequence #\Space passport-line)
-                         :for (key value) := (split-sequence #\: cred)
-                         ;; Convert the key-value pair into a plist of
-                         ;; keys and values...
-                         :collect (make-keyword (string-upcase key))
-                           :into kwargs
-                         :collect value :into kwargs
-                         ;; ...which we can then apply to
-                         ;; make-passport* to make our struct
-                         :finally (return (apply 'make-passport* kwargs))))))
-
-(defparameter +input+ (parse-passports))
+(defparameter +input+ (parse-forms #'parse-passport))
 
 (defun solve-part-1 ()
   (loop :for passport :in +input+

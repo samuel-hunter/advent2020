@@ -1,10 +1,10 @@
 
 (defpackage #:advent2020.util
   (:use #:cl #:alexandria #:arrows)
-  (:export #:read-puzzle-text
-           #:read-puzzle-sexp
+  (:export #:read-puzzle-sexp
            #:with-puzzle-file
-           #:parse-lines))
+           #:parse-lines
+           #:parse-forms))
 
 (in-package #:advent2020.util)
 
@@ -31,12 +31,6 @@
     (keyword (concatenate 'string (string-downcase name-designator) suffix))
     (string name-designator)))
 
-(defun read-puzzle-text (&optional name)
-  "Read a file from the input directory as a text file. With no NAME,
-the file is determined based on the package name."
-  (setf name (normalize-name-designator name ".txt"))
-  (read-file-into-string (merge-pathnames name +input-directory+)))
-
 (defun read-puzzle-sexp (&optional name)
   "Read a file from the input directory as an s-expression. With no
 NAME, the file is determined based on the package name."
@@ -50,7 +44,25 @@ NAME, the file is determined based on the package name."
      ,@body))
 
 (defun parse-lines (parser &optional name (prefix ".txt"))
+  "Read each line from the puzzle text, pass it to PARSER, and collect."
   (with-puzzle-file (stream name prefix)
     (loop :for line := (read-line stream nil)
           :while line
           :collect (funcall parser line))))
+
+(defun parse-forms (parser &optional name (prefix ".txt"))
+  "Read each multiline form from the puzzle text, pass the list of
+lines to PARSER, and collect."
+  (with-puzzle-file (stream name prefix)
+    (loop :with form := ()
+          :for line := (read-line stream nil)
+          :while line
+          :if (string= "" line)
+            :collect (funcall parser (reverse form)) :into forms
+            :and :do (setf form ())
+          :else
+            :do (push line form)
+          :finally (return (if form
+                               (cons (funcall parser (reverse form))
+                                     forms)
+                               forms)))))
