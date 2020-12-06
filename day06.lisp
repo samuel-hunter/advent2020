@@ -1,43 +1,51 @@
 
 (defpackage #:advent2020.day06
-  (:use #:cl #:alexandria #:advent2020.util)
+  (:use #:cl #:alexandria #:advent2020.util #:arrows)
   (:export #:solve-part-1 #:solve-part-2))
 
 (in-package #:advent2020.day06)
 
 
 
-(defparameter +input+ (parse-forms #'identity))
+(defun question-number (char)
+  (- (char-code char) #.(char-code #\a)))
 
-(defun count-any-answered (group)
-  "Count teh number of questions that any people in GROUP answered."
-  (loop :with answered-qs := (make-hash-table :test 'equal)
-        :for line :in group
-        :do (loop :for c :across line
-                  :do (setf (gethash c answered-qs) t))
-        :finally (return (length (hash-table-keys answered-qs)))))
+(defun parse-answers (lines)
+  (loop :for line :in lines
+        ;; Construct a 26-bit bit array for each line of questions.
+        :collect (loop :with bit-array := (make-array 26 :element-type 'bit)
+                       :for question :across line
+                       :do (setf (bit bit-array (question-number question)) 1)
+                       :finally (return bit-array))))
+
+(defun count-answers (answer-map)
+  (loop :for answer-bit :below 26
+        :count (= 1 (bit answer-map answer-bit))))
+
+(defparameter +input+ (parse-forms 'parse-answers))
+
+(defun fold-any-answers (group)
+  "Reduce a group to a bit-array of answers affirmed by ANY group member."
+  (reduce #'bit-ior group))
 
 (defun solve-part-1 ()
-  ;; Count the questions for each group and sum them up.
-  (reduce #'+ (mapcar 'count-any-answered +input+)))
+  (->>
+   ;; Take each group and fold them up...
+   (mapcar 'fold-any-answers +input+)
+   ;; Count the answers for each group...
+   (mapcar 'count-answers)
+   ;; ...and sum it up!
+   (reduce #'+)))
 
-(defun count-all-answered (group)
-  "Count the number of questions that all people in GROUP answered."
-  ;; Count the number of questions people missed
-  (loop :with missed-qs := (make-hash-table :test 'equal)
-        :for line :in group
-        :do (loop :for c :across line
-                  ;; Count all the questions answered
-                  :with answered-qs := (make-hash-table :test 'equal)
-                  :do (setf (gethash c answered-qs) t)
-                      ;; And then touch to MISSED-QS all the questions missed.
-                  :finally (loop :for code :from (char-code #\a) :to (char-code #\z)
-                                 :for c := (code-char code)
-                                 :unless (gethash c answered-qs)
-                                   :do (setf (gethash c missed-qs) t)))
-            ;; Finally, fold and invert.
-        :finally (return (- 26 (length (hash-table-keys missed-qs))))))
+(defun fold-all-answers (group)
+  "Reduce a group to a bit-array of answers affirmed by ALL group members."
+  (reduce #'bit-and group))
 
 (defun solve-part-2 ()
-  ;; Count the questions for each group and sum them up.
-  (reduce #'+ (mapcar 'count-all-answered +input+)))
+  (->>
+   ;; Take each group and fold them up...
+   (mapcar 'fold-all-answers +input+)
+   ;; Count the answers for each group...
+   (mapcar 'count-answers)
+   ;; ...and sum it up!
+   (reduce #'+)))
