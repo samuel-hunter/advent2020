@@ -8,6 +8,8 @@
 
 
 (defun read-groups ()
+  ;; After days 4 and 6, I'm tempted to write a util function to group
+  ;; together newline-separated groups.
   (with-puzzle-file (stream)
     (loop :with group := ()
           :for line := (read-line stream nil)
@@ -23,9 +25,8 @@
 
 (defparameter +input+ (read-groups))
 
-(defparameter +qs+ "abcdefghijklmnopqrstuvwxyz")
-
-(defun count-answers (group)
+(defun count-any-answered (group)
+  "Count teh number of questions that any people in GROUP answered."
   (loop :with answered-qs := (make-hash-table :test 'equal)
         :for line :in group
         :do (loop :for c :across line
@@ -33,19 +34,26 @@
         :finally (return (length (hash-table-keys answered-qs)))))
 
 (defun solve-part-1 ()
-  (reduce #'+ (mapcar 'count-answers +input+)))
+  ;; Count the questions for each group and sum them up.
+  (reduce #'+ (mapcar 'count-any-answered +input+)))
 
-(defun count-answers* (group)
+(defun count-all-answered (group)
+  "Count the number of questions that all people in GROUP answered."
+  ;; Count the number of questions people missed
   (loop :with missed-qs := (make-hash-table :test 'equal)
         :for line :in group
         :do (loop :for c :across line
+                  ;; Count all the questions answered
                   :with answered-qs := (make-hash-table :test 'equal)
                   :do (setf (gethash c answered-qs) t)
-                  :finally (loop :for q :across +qs+
+                      ;; And then touch to MISSED-QS all the questions missed.
+                  :finally (loop :for code :from (char-code #\a) :to (char-code #\z)
+                                 :for c := (code-char code)
                                  :unless (gethash q answered-qs)
                                    :do (setf (gethash q missed-qs) t)))
-        :finally (return (loop :for q :across +qs+
-                               :count (not (gethash q missed-qs))))))
+            ;; Finally, fold and invert.
+        :finally (return (- 26 (length (hash-table-keys missed-qs))))))
 
 (defun solve-part-2 ()
-  (reduce #'+ (mapcar 'count-answers* +input+)))
+  ;; Count the questions for each group and sum them up.
+  (reduce #'+ (mapcar 'count-all-answered +input+)))
