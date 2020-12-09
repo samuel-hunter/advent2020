@@ -7,13 +7,13 @@
 
 
 
-(declaim (optimize (debug 3)))
-
 (defparameter +preamble+ 25)
 (defparameter +input+ (coerce (parse-lines #'parse-integer) 'vector))
 
 
 (defun valid-p (index)
+  "Return whether an index is valid -- that is, whether there is a
+pair of numbers some addresses behind that adds up to this number."
   (loop :with num := (aref +input+ index)
         :for i1 :from (- index +preamble+) :below (1- index)
         :for v1 := (aref +input+ i1)
@@ -21,15 +21,14 @@
                          :for v2 := (aref +input+ i2)
                            :thereis (= num (+ v1 v2)))))
 
-(defun invalid-p (index)
-  (not (valid-p index)))
-
 (defun solve-part-1 ()
   (loop :for i :from +preamble+ :below (length +input+)
         :while (valid-p i)
         :finally (return (aref +input+ i))))
 
 (defun sums-to (num start)
+  "Return a list of whether a series of numbers starting at START adds
+up to NUM, and the end of this subsequence."
   (loop :for i :upfrom start
         :sum (aref +input+ i) :into acc
         :until (>= acc num)
