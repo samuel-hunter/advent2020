@@ -1,14 +1,20 @@
 
 (defpackage #:advent2020.day08
-  (:use #:cl #:alexandria #:advent2020.util)
+  (:use #:cl #:alexandria #:advent2020.util #:split-sequence)
   (:export #:solve-part-1 #:solve-part-2))
 
 (in-package #:advent2020.day08)
 
 
 
+(defun parse-instr (line)
+  (destructuring-bind (op num)
+      (split-sequence #\Space line)
+    (list (make-keyword (string-upcase op))
+          (parse-integer num))))
+
 (defparameter +input+
-  (coerce (read-puzzle-sexp) 'vector))
+  (coerce (parse-lines #'parse-instr) 'vector))
 
 (defun instr-op (instr)
   (car instr))

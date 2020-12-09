@@ -7,15 +7,14 @@
 
 
 
-(defparameter +input+ (read-puzzle-sexp))
+(defparameter +input+ (parse-lines #'parse-integer))
 
 (defun solve-part-1 ()
   (loop :for nums :on +input+
         :for x := (first nums)
         :do (loop :for y :in (rest nums)
                   :when (= 2020 (+ x y))
-                    :do (return-from solve-part-1
-                          (values (* x y) x y)))))
+                    :do (return-from solve-part-1 (* x y)))))
 
 (defun solve-part-2 ()
   (loop :for nums :on +input+
