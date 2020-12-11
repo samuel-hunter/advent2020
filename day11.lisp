@@ -21,86 +21,86 @@
 
 (defparameter +input+ (parse-grid (parse-lines #'identity)))
 
+(defun width (grid)
+  (array-dimension grid 0))
+(defun height (grid)
+  (array-dimension grid 1))
+
+(defun seat (grid x y)
+  (if (and (<= 0 x (1- (width grid)))
+           (<= 0 y (1- (height grid))))
+      (aref grid x y)
+      #\L))
+(defun (setf seat) (new-value grid x y)
+  (setf (aref grid x y) new-value))
+
+(defun occupied-p (char)
+  (char= #\# char))
+(defun empty-p (char)
+  (char= #\L char))
+
+(defparameter +adjacents+
+  '((-1 -1)
+    (-1  0)
+    (-1 +1)
+
+    ( 0 -1)
+    ( 0 +1)
+
+    (+1 -1)
+    (+1  0)
+    (+1 +1)))
+
+(defun adjacents (grid x y)
+  "Return all occupied adjacent seats."
+  (loop :for (dx dy) :in +adjacents+
+        :count (occupied-p (seat grid (+ x dx) (+ y dy)))))
+
 (defun first-seat (grid origin-x origin-y dx dy)
+  "Look from the origin to a direction for the first seat, and return its value."
   (loop :for x := (+ origin-x dx) :then (+ x dx)
         :for y := (+ origin-y dy) :then (+ y dy)
-        :while (and (<= 0 x (1- (array-dimension grid 0)))
-                    (<= 0 y (1- (array-dimension grid 1))))
+        :while (and (<= 0 x (1- (width grid)))
+                    (<= 0 y (1- (height grid))))
         :for seat := (aref grid x y)
         :unless (char= seat #\.)
           :do (return (values seat t))
         :finally (return (values #\. nil))))
 
-;; (defun is-occupied (grid x y)
-;;   (when (or (< x 0) (< y 0)
-;;             (>= x (array-dimension grid 0))
-;;             (>= y (array-dimension grid 1)))
-;;     (return-from is-occupied nil))
-;;   (char= #\# (aref grid x y)))
+(defun adjacents* (grid x y)
+  "Return all occupied adjacent seats, looking ahead to the nearest seat."
+  (loop :for (dx dy) :in +adjacents+
+        :count (occupied-p (first-seat grid x y dx dy))))
 
-(defun is-occupied (grid x y dx dy)
-  (char= #\# (first-seat grid x y dx dy)))
+(defun eval-grid (grid adjacents tolerance)
+  "Evaluate the grid and return a copy of the next generation, with
+ADJACENTS being the function to count the adjacent occupied seats, and
+TOLERANCE being the number of adjacent occupied seats to transform an
+occupied seat to empty."
+  (loop :with target := (copy-array grid)
+        :for x :below (width grid)
+        :do (loop :for y :below (height grid)
+                  :for seat := (seat grid x y)
+                  :do (cond ((and (empty-p seat)
+                                  (= 0 (funcall adjacents grid x y)))
+                             (setf (seat target x y) #\#))
+                            ((and (occupied-p seat)
+                                  (>= (funcall adjacents grid x y)
+                                      tolerance))
+                             (setf (seat target x y) #\L))))
+        :finally (return target)))
 
-;; (defun adjacents (grid x y)
-;;   (loop :for adjacent :in (list
-;;                             (is-occupied grid (1- x) (1- y))
-;;                             (is-occupied grid x (1- y))
-;;                             (is-occupied grid (1+ x) (1- y))
-
-;;                             (is-occupied grid (1- x) y)
-;;                             (is-occupied grid (1+ x) y)
-
-;;                             (is-occupied grid (1- x) (1+ y))
-;;                             (is-occupied grid x (1+ y))
-;;                             (is-occupied grid (1+ x) (1+ y)))
-;;         :count adjacent))
-
-(defun adjacents (grid x y)
-  (loop :for (dx dy) :in '((-1 -1)
-                           (-1 0)
-                           (-1 +1)
-                           (0 -1)
-                           (0 +1)
-                           (+1 -1)
-                           (+1 0)
-                           (+1 +1))
-        :count (is-occupied grid x y dx dy)))
-
-(defun eval-grid (grid)
-  (let* ((size (array-dimensions grid))
-         (width (first size))
-         (height (Second size))
-         (target (copy-array grid)))
-    (dotimes (x width)
-      (dotimes (y height)
-        (let ((seat (aref grid x y)))
-          (cond
-            ((and (char= #\L seat)
-                  (= (adjacents grid x y) 0))
-             (setf (aref target x y) #\#))
-            ((and (char= #\# seat)
-                  (>= (adjacents grid x y) 5))
-             (setf (aref target x y) #\L))))))
-    target))
-
-(defun print-grid (grid)
-  (loop :for y :below (array-dimension grid 1)
-        :do (loop :for x :below (array-dimension grid 0)
-                  :do (princ (aref grid x y)))
-            (terpri))
-  (terpri))
+(defun solve-grid (adjacents tolerance)
+  (loop :for start := (copy-array +input+) :then next
+        :for next := (eval-grid start adjacents tolerance)
+        :until (equalp start next)
+        :finally (return
+                   (loop :for x :below (width next)
+                         :sum (loop :for y :below (height next)
+                                    :count (occupied-p (seat next x y)))))))
 
 (defun solve-part-1 ()
-  (loop :for start := (copy-array +input+) :then next
-        :for next := (eval-grid start)
-        :for iterations :upfrom 0
-        :until (equalp start next)
-        :do (print-grid next)
-        :finally (return
-                   (loop :for x :below (array-dimension next 0)
-                         :sum (loop
-                                :for y :below (array-dimension next 1)
-                                :for seat := (aref next x y)
-                                :count (char= seat #\#))))))
+  (solve-grid #'adjacents 4))
 
-  (defun solve-part-2 ())
+(defun solve-part-2 ()
+  (solve-grid #'adjacents* 5))
