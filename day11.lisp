@@ -7,19 +7,7 @@
 
 
 
-(defun parse-grid (lines)
-  (loop :with grid := (make-array (list (length (first lines))
-                                        (length lines))
-                                  :element-type 'character
-                                  :initial-element #\.)
-        :for line :in lines
-        :for y :upfrom 0
-        :do (loop :for c :across line
-                  :for x :upfrom 0
-                  :do (setf (aref grid x y) c))
-        :finally (return grid)))
-
-(defparameter +input+ (parse-grid (parse-lines #'identity)))
+(defparameter +input+ (read-puzzle-grid))
 
 (defun width (grid)
   (array-dimension grid 0))

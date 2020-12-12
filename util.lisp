@@ -4,7 +4,8 @@
   (:export #:read-puzzle-sexp
            #:with-puzzle-file
            #:parse-lines
-           #:parse-forms))
+           #:parse-forms
+           #:read-puzzle-grid))
 
 (in-package #:advent2020.util)
 
@@ -66,3 +67,16 @@ lines to PARSER, and collect."
                                (cons (funcall parser (reverse form))
                                      forms)
                                forms)))))
+
+(defun read-puzzle-grid (&optional name (prefix ".txt"))
+  (loop :with lines := (parse-lines #'identity name prefix)
+        :with width := (length (first lines))
+        :with height := (length lines)
+        :with grid := (make-array (list width height)
+                                  :element-type 'character)
+        :for line :in lines
+        :for y :upfrom 0
+        :do (loop :for char :across line
+                  :for x :upfrom 0
+                  :do (setf (aref grid x y) char))
+        :finally (return grid)))
