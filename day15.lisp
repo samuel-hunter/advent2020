@@ -1,6 +1,6 @@
 
 (defpackage #:advent2020.day15
-  (:use #:cl #:alexandria #:advent2020.util #:split-sequence)
+  (:use #:cl #:alexandria #:advent2020.util)
   (:export #:solve-part-1 #:solve-part-2))
 
 (in-package #:advent2020.day15)
@@ -9,32 +9,32 @@
 
 (defparameter +input+ '(6 4 12 1 20 0 16))
 
-(defun solve-part-1 ()
-  (loop :with memory := (reverse +input+)
-        :for latest := (first memory)
-        :for next := (1+ (or (position latest (rest memory))
-                             -1))
-
-        :repeat (- 2020 (length +input+))
-
-        :do (print (list latest next))
-        :do (push next memory)
-        :finally (return latest)))
-
-(defun starting-memory (input)
+(defun starting-memory (preamble)
+  "Create a hash table of the last turn of every mentioned number."
   (loop :with result := (make-hash-table)
-        :for i :from 0
-        :for x :in (butlast input)
+        :for i :from 1
+        ;; reserve the last number for the next turn.
+        :for x :in (butlast preamble)
         :do (setf (gethash x result) i)
         :finally (return result)))
 
-(defun solve-part-2 ()
-  (loop :with memory := (starting-memory +input+)
-        :with current := (car (last +input+))
-        :for prev := current
-        :for turn :upfrom (1- (length +input+))
+(defun play-memory (preamble last-turn)
+  (loop :with memory := (starting-memory preamble)
+        :with current := (car (last preamble))
+
+        :for turn :upfrom (length preamble) :below last-turn
+
+        ;; Remember how many turns ago the current number was said.
         :for next := (- turn (gethash current memory turn))
-        :repeat (- 30000000 (length +input+))
+
+        ;; Remember the current number for later.
         :do (setf (gethash current memory) turn
+                  ;; Say the next number, making it the current number.
                   current next)
-        :finally (return prev)))
+        :finally (return current)))
+
+(defun solve-part-1 ()
+  (play-memory +input+ 2020))
+
+(defun solve-part-2 ()
+  (play-memory +input+ 30000000))
